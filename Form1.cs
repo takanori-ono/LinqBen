@@ -17,6 +17,7 @@ namespace LinqBen
             InitializeComponent();
         }
 
+	// hoge
         // まずは、Where と Select
         // Where は参照のコピー
         // Select でもオブジェクトのコピーはされない 参照のコピーになる　コピーが必要なら自分でできる

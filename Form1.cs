@@ -394,5 +394,53 @@ namespace LinqBen
             };
             var disticted = smpl.Distinct().ToList();
         }
+
+        private void button19_Click(object sender, EventArgs e)
+        {
+            // first() で取得すると、参照にならない？？？ 勘違い。そんなことはない。
+            var smpl = new List<Hoge2>
+            {
+                new Hoge2 {No = 1, Name = "ono" },
+                new Hoge2 {No = 2, Name = "desu" },
+                new Hoge2 {No = 3, Name = "hoho" },
+                new Hoge2 {No = 4, Name = "toto" },
+            };
+
+            smpl.Where(x => x.No == 3).First().Name = "onodesuyo";
+
+            foreach (var h in smpl)
+            {
+                Console.WriteLine($"No: {h.No}, Name: {h.Name}");
+            }
+
+        }
+
+        public class PetOwners
+        {
+            public string Name { get; set; }
+            public List<string> Pets { get; set; }
+        }
+        // SelectMany 2段階のリストを平滑化する
+        private void button20_Click(object sender, EventArgs e)
+        {
+            PetOwners[] petOwners =
+            {
+                new PetOwners {Name = "aaa", Pets = new List<string>{"neco","inu",} },
+                new PetOwners {Name = "ono", Pets = new List<string>{"kiji","saru",} },
+            };
+
+            foreach (var a in petOwners)
+            {
+                Console.WriteLine($"{a.Name} has pets {string.Join(":", a.Pets)}");
+            }
+
+            // 1番目は、要素をもらって、内部リストを返すようにする
+            // 2番目は、要素と内部リストの１要素を貰えるので、result に合うように加工する
+            var q = petOwners.SelectMany(x => x.Pets, (p, c) => new { Name = p.Name, Pet = c });
+            foreach(var b in q)
+            {
+                Console.WriteLine($"{b.Name} has pets {b.Pet}");
+            }
+        }
     }
 }

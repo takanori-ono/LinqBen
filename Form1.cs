@@ -11,6 +11,34 @@ using System.Windows.Forms;
 
 namespace LinqBen
 {
+    // 目次：
+    //List<T>::
+    //      ForEach(Action<T>)
+    //      bool Contains(T)
+
+    //Enumerable::
+    //      Where(Func<T,bool>) 絞り込み
+    //      Select(Func<T,TResult>) 射影
+    //      Select(Func<T,int,TResult>) 射影（インデックス付き）
+
+    //      TVal Max(Func<T, TVal>), Min 最大最小
+    //      int Count() 個数
+
+    //      bool All(Func<T, bool>), Any 全て、1つでも
+
+    //      OrderBy(Func<T, key>), OrderByDescending ソート
+    //      ThenBy,ThenByDescending　第2キー
+    //      Reverse 反転
+
+    //      Aggregate(TResult seed, Func<Tresult, T, Tresult> f) 　集計 string f(string, T)で計算する
+
+    //      Join(4つ)  sql の inner join と同じ
+    
+    //      Union, Except 和、差（２つのenumerable内で同一は削除される）
+
+    //      Concat 単純な結合
+    //      DefaultIfEmpty 空の場合でもデフォルト要素一つを戻す。空でなければ各要素。つまり、最低１つある。
+
     public partial class Form1 : Form
     {
         public Form1()
@@ -223,6 +251,33 @@ namespace LinqBen
 
             var result = q.ToList();
             //Console.WriteLine(q.ToList());
+        }
+        // inner join であることを確認。第2、３の引数が同じ場合のみ出力対象
+        private void button32_Click(object sender, EventArgs e)
+        {
+            var shokuin = new[]
+            {
+                new { No=1, Name="aaa", Shozoku=1, },
+                new { No=2, Name="bbb", Shozoku=2, },
+                new { No=3, Name="ccc", Shozoku=1, },
+                new { No=4, Name="ddd", Shozoku=4, },
+            };
+            var shozoku_mst = new[]
+            {
+                new { No=1, KaName="総務", },
+                //new { No=2, KaName="住民", },
+                new { No=3, KaName="税務", },
+                new { No=4, KaName="建設", },
+            };
+
+            var q = shokuin.Join(
+                shozoku_mst,
+                sno => sno.Shozoku,
+                nno => nno.No,
+                (x, y) => new { Name = x.Name, Shozoku = y.KaName, }
+                );
+            Console.WriteLine(q.ToResult());
+
         }
 
         private void button9_Click(object sender, EventArgs e)
@@ -607,6 +662,38 @@ namespace LinqBen
 
             var nl2 = a.Except(b); // 自分の中の重複もなくなる。aの中に無いものを引いてもよい。
             Console.WriteLine(nl2.ToResult());
+        }
+
+        // concatは単純に結合
+        private void button35_Click(object sender, EventArgs e)
+        {
+            var a = Enumerable.Range(1, 10);
+            var b = Enumerable.Range(5, 15);
+            Console.WriteLine(a.Concat(b).ToResult());
+        }
+
+        // All, Any, Contains
+        private void button33_Click(object sender, EventArgs e)
+        {
+            var a = new List<int> { 1, 2, 3, 4, 5, };
+            var a_1 = a.All(x => x < 6);
+            var a_2 = a.Any(x => x == 3);
+            var a_3 = a.Contains(3);
+        }
+
+        private void button34_Click(object sender, EventArgs e)
+        {
+            var q = Enumerable.Range(1, 10);
+            var q_r = q.Reverse();
+            Console.WriteLine(q_r.ToResult());
+        }
+
+        private void button36_Click(object sender, EventArgs e)
+        {
+            var l = new List<int>();
+            var cnt = l.Count();
+            var cnt2 = l.DefaultIfEmpty().Count();
+            Console.WriteLine(l.DefaultIfEmpty().ToResult());
         }
     }
     public class Hoge

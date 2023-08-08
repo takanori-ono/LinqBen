@@ -544,6 +544,21 @@ namespace LinqBen
             );
             Console.WriteLine(q.ToResult());
         }
+        //GroupBy その２　(リストのリストにしてくれる。親側は.Keyプロパティ付き)
+        private void button37_Click(object sender, EventArgs e)
+        {
+            var adrs = new[]
+            {
+                new { Simei = "Ono Taka", KenCode = 2, },
+                new { Simei = "Tanaka Hoge", KenCode = 1, },
+                new { Simei = "Sato Ken", KenCode = 3, },
+                new { Simei = "Ogoori No", KenCode = 2, },
+            };
+            adrs.GroupBy(x => x.KenCode)
+                .OrderBy(x => x.First().KenCode)
+                .ToList().ForEach(x => Console.WriteLine(x.Key + ":" + x.ToResult()));
+        }
+
 
         private void button25_Click(object sender, EventArgs e)
         {
@@ -695,6 +710,7 @@ namespace LinqBen
             var cnt2 = l.DefaultIfEmpty().Count();
             Console.WriteLine(l.DefaultIfEmpty().ToResult());
         }
+
     }
     public class Hoge
     {

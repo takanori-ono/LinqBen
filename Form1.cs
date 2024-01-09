@@ -15,6 +15,8 @@ namespace LinqBen
     //List<T>::
     //      ForEach(Action<T>)
     //      bool Contains(T)
+    //      int FindIndex(Predicate)
+    //      Reverse() こっちは、破壊的（変更される）
 
     //Enumerable::
     //      Where(Func<T,bool>) 絞り込み
@@ -28,12 +30,16 @@ namespace LinqBen
 
     //      OrderBy(Func<T, key>), OrderByDescending ソート
     //      ThenBy,ThenByDescending　第2キー
-    //      Reverse 反転
+    //      Reverse 反転（List.Reverse()と被ってエラーになる場合は、Reverse<T>()と明示的にすること。もしくは、一旦 IEnumerable<T> に置き換える）
 
     //      Aggregate(TResult seed, Func<Tresult, T, Tresult> f) 　集計 string f(string, T)で計算する
 
     //      Join(4つ)  sql の inner join と同じ
-    
+
+    //      GroupJoin  left outer join と同じ感じ
+
+    //      GroupBy まさに同じ
+
     //      Union, Except 和、差（２つのenumerable内で同一は削除される）
 
     //      Concat 単純な結合
@@ -582,6 +588,12 @@ namespace LinqBen
             var lt = new List<int>{ 1, 2, 3, 4, 5, };
             lt.ForEach(x => Console.WriteLine(x));
 
+            // こうすれば良かった。
+            Console.WriteLine(string.Join(",", lt.Reverse<int>()));
+
+            // こっちが正解かも
+            IEnumerable<int> en = lt;
+            Console.WriteLine(string.Join(",", en.Reverse()));
 
             // reverse は破壊的。コピーしてからしないと元が変更される。
             var lt_r = new List<int>(lt);
@@ -709,6 +721,39 @@ namespace LinqBen
             var cnt = l.Count();
             var cnt2 = l.DefaultIfEmpty().Count();
             Console.WriteLine(l.DefaultIfEmpty().ToResult());
+        }
+
+        // Zip 2つのシーケンスから、作成する　結合？ 統合？
+        // 個数は、どちらか少ない方になるみたい
+        private void button38_Click(object sender, EventArgs e)
+        {
+            var x = new[] { 1, 2, 3, };
+            var y = new[] { "a", "b", "c", "d", };
+            Console.WriteLine(x.Zip(y, (a, b) => new { A = a, B = b, }).ToList().ToResult());
+        }
+
+        // Zipを使用して、片方のリストのフラグでフィルタリング
+        private void button40_Click(object sender, EventArgs e)
+        {
+            var vals = new[] { "a", "b", "c", "d", "e", };
+            var flags = new[] { 1, 0, 1, 0, 1 };
+            var q = vals.Zip(flags, (v, f) => new { V = v, F = f, }).Where(x => x.F != 0).Select(x => x.V);
+            Console.WriteLine(q.ToResult()); // "a", "c", "e"
+        }
+        private void button39_Click(object sender, EventArgs e)
+        {
+            // ソート済みListに挿入
+            // 要素を挿入する先を求めるのに使用
+            var a = new List<Hoge> {
+                //new Hoge { Id=10 },
+                //new Hoge { Id=20 },
+                //new Hoge { Id=30 },
+                //new Hoge { Id=40 },
+            };
+            int insert_val=25;
+            var i = a.FindIndex(x => x.Id > insert_val);
+            if (i < 0) i = a.Count; // 見つからない場合は-１を返してくる
+            a.Insert(i, new Hoge { Id = insert_val });
         }
 
     }

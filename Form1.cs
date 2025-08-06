@@ -15,6 +15,7 @@ namespace LinqBen
     //List<T>::
     //      ForEach(Action<T>)
     //      bool Contains(T)
+    //      bool Exists(pred<T>)
     //      int FindIndex(Predicate)
     //      Reverse() こっちは、破壊的（変更される）
 
@@ -23,8 +24,11 @@ namespace LinqBen
     //      Select(Func<T,TResult>) 射影
     //      Select(Func<T,int,TResult>) 射影（インデックス付き）
 
-    //      TVal Max(Func<T, TVal>), Min 最大最小
+    //      List<List<T>>.SelectMany(x=>x) = IEnumerable<T> ２階層を平滑化
+
+    //      TVal Max(Func<T, TVal>), Min 最大最小 empty 時の例外発生は (x => (int?)x)で回避可能
     //      int Count() 個数
+    //      Maxの値ではなく、Maxの値を持つ要素がほしい場合はAggregateが使用可能
 
     //      bool All(Func<T, bool>), Any 全て、1つでも
 
@@ -40,7 +44,7 @@ namespace LinqBen
 
     //      GroupBy まさに同じ
 
-    //      Union, Except 和、差（２つのenumerable内で同一は削除される）
+    //      Union, Except, Intersec 和、差、積（２つのenumerable内で同一は削除される）
 
     //      Concat 単純な結合
     //      DefaultIfEmpty 空の場合でもデフォルト要素一つを戻す。空でなければ各要素。つまり、最低１つある。
@@ -71,7 +75,8 @@ namespace LinqBen
 
             foreach (var h in hoges)
             {
-                Console.WriteLine(h.String());
+                //Console.WriteLine(h.String());
+                Console.WriteLine(h.GetHashCode());
             }
             // こうすればよい
             hoges.ForEach(x => Console.WriteLine(x.String()));
@@ -89,6 +94,8 @@ namespace LinqBen
             {
                 Console.WriteLine(h.String());
             }
+
+            TestClass.test_func();
         }
 
         // Range
@@ -131,6 +138,10 @@ namespace LinqBen
         // というよりアクセスするたびに実行される
         private void button4_Click(object sender, EventArgs e)
         {
+            var str = "総務課 / 企画財政係";
+            var arys = str.Split('/');
+            var ans = arys[arys.Length - 1].Trim(' ');
+
             var nums = new List<int> { 4, 5, 6, 2, };
             foreach (var elm in nums)
             {
@@ -226,6 +237,29 @@ namespace LinqBen
             //    if ()
             //    return res;
             //});
+        }
+
+        // Aggregate：２つの要素を比較して１つを返す処理を最後まで繰り返す
+        // Maxな要素を求める場合にも使用可能
+        private void button60_Click(object sender, EventArgs e)
+        {
+            var data = new List<Hoge2> {
+                new Hoge2{ No = 1, Name ="1", Rank = 1000, },
+                new Hoge2{ No = 2, Name ="2", Rank = 1001, },
+                new Hoge2{ No = 3, Name ="3", Rank = 2000, },
+                new Hoge2{ No = 4, Name ="4", Rank = 2100, },
+                new Hoge2{ No = 5, Name ="5", Rank = 3000, },
+                new Hoge2{ No = 6, Name ="6", Rank = 4000, },
+            };
+            //var max_elm = data.Aggregate(Hoge2.Comparare);
+            var max_elm = data.Aggregate((a,b) => a.Rank > b.Rank ? a : b);
+
+            // １つしか要素がなくても、その１つを返してくれる
+            var max_elm2 = data.Take(1).Aggregate(Hoge2.Comparare);
+
+            // emptyの場合は例外発生
+            //var data2 = new List<Hoge2>();
+            //var max_elm3 = data2.Aggregate(Hoge2.Comparare);
         }
 
         private void button8_Click(object sender, EventArgs e)
@@ -479,6 +513,8 @@ namespace LinqBen
                 Console.WriteLine($"{b.Name} has pets {b.Pet}");
             }
             Console.WriteLine(q.ToResult());
+
+            var pets_count = petOwners.SelectMany(x => x.Pets).Count();
         }
 
         private void button21_Click(object sender, EventArgs e)
@@ -550,7 +586,7 @@ namespace LinqBen
             );
             Console.WriteLine(q.ToResult());
         }
-        //GroupBy その２　(リストのリストにしてくれる。親側は.Keyプロパティ付き)
+        //GroupBy その２　(リストのリストにしてくれる。子側は.Keyプロパティ付き　IGrouping<TKey,TData>)
         private void button37_Click(object sender, EventArgs e)
         {
             var adrs = new[]
@@ -560,11 +596,40 @@ namespace LinqBen
                 new { Simei = "Sato Ken", KenCode = 3, },
                 new { Simei = "Ogoori No", KenCode = 2, },
             };
-            adrs.GroupBy(x => x.KenCode)
-                .OrderBy(x => x.First().KenCode)
-                .ToList().ForEach(x => Console.WriteLine(x.Key + ":" + x.ToResult()));
+            //adrs.GroupBy(x => x.KenCode)
+            //    .OrderBy(x => x.First().KenCode)
+            //    .ToList().ForEach(x => Console.WriteLine(x.Key + ":" + x.ToResult()));
+            var grouped = adrs.GroupBy(x => x.KenCode);
+            foreach(var g in grouped)
+            {
+                var key = g.Key;
+                var cnt = g.Count();
+                foreach(var inner_g in g)
+                {
+                    Console.WriteLine(g.ToResult());
+                }
+            }
+            var fukusu = adrs.GroupBy(x => x.KenCode).Where(x=>x.Count()>1).SelectMany(x => x).ToList();
         }
 
+        public int sum(int a, int b)
+        {
+            return a + b;
+        }
+
+        private void button59_Click(object sender, EventArgs e)
+        {
+
+            var data = new List<Hoge2> {
+                new Hoge2{ No = 1, Name ="1", Rank = 1000, },
+                new Hoge2{ No = 2, Name ="2", Rank = 1001, },
+                new Hoge2{ No = 3, Name ="3", Rank = 2000, },
+                new Hoge2{ No = 4, Name ="4", Rank = 2100, },
+                new Hoge2{ No = 5, Name ="5", Rank = 3000, },
+                new Hoge2{ No = 6, Name ="6", Rank = 4000, },
+            };
+            var g = data.GroupBy(x => x.RankAbout()).ToList();
+        }
 
         private void button25_Click(object sender, EventArgs e)
         {
@@ -600,6 +665,18 @@ namespace LinqBen
             lt_r.Reverse();
             lt.ForEach(x => Console.WriteLine(x));  // 1,2,3,4,5
             lt_r.ForEach(x => Console.WriteLine(x));// 5,4,3,2,1
+        }
+        // 再度Reverse
+        private void button43_Click(object sender, EventArgs e)
+        {
+            var lt = new List<int> { 1, 2, 3, 4, 5, };
+            lt.ForEach(x => Console.WriteLine(x));
+
+            var n_it = lt as IEnumerable<int>;
+            var r_it = n_it.Reverse();
+
+            Console.WriteLine(string.Join(",", r_it));
+            Console.WriteLine(string.Join(",", n_it));
         }
 
         private void button27_Click(object sender, EventArgs e)
@@ -689,6 +766,9 @@ namespace LinqBen
 
             var nl2 = a.Except(b); // 自分の中の重複もなくなる。aの中に無いものを引いてもよい。
             Console.WriteLine(nl2.ToResult());
+
+            var seki = a.Intersect(b);
+            Console.WriteLine(seki.ToResult());
         }
 
         // concatは単純に結合
@@ -699,13 +779,14 @@ namespace LinqBen
             Console.WriteLine(a.Concat(b).ToResult());
         }
 
-        // All, Any, Contains
+        // All, Any, Contains, Exists
         private void button33_Click(object sender, EventArgs e)
         {
             var a = new List<int> { 1, 2, 3, 4, 5, };
             var a_1 = a.All(x => x < 6);
             var a_2 = a.Any(x => x == 3);
             var a_3 = a.Contains(3);
+            var a_4 = a.Exists(x=>x==4);
         }
 
         private void button34_Click(object sender, EventArgs e)
@@ -720,6 +801,8 @@ namespace LinqBen
             var l = new List<int>();
             var cnt = l.Count();
             var cnt2 = l.DefaultIfEmpty().Count();
+            Console.WriteLine(l.DefaultIfEmpty().ToResult());
+            l.Add(1);
             Console.WriteLine(l.DefaultIfEmpty().ToResult());
         }
 
@@ -754,6 +837,272 @@ namespace LinqBen
             var i = a.FindIndex(x => x.Id > insert_val);
             if (i < 0) i = a.Count; // 見つからない場合は-１を返してくる
             a.Insert(i, new Hoge { Id = insert_val });
+
+            TestClass.test_func();
+        }
+
+        private void button41_Click(object sender, EventArgs e)
+        {
+            var vals = new[] { "a", "b", "c", };
+            // ３つしかなくても、エラーにならないか？
+            Console.WriteLine(vals.Take(5).ToResult());
+            // なりません！！
+        }
+
+        private void button42_Click(object sender, EventArgs e)
+        {
+            var sample = "10;20;30;";
+            var ans = sample.Split(';').Where(x => !string.IsNullOrEmpty(x)).Select(x => x.ToString()).ToList();
+        }
+
+        Hoge hoge_func(Hoge h)
+        {
+            h.Id = 10;
+            return h;
+        }
+        Hoge hoge_func2(Hoge h)
+        {
+            h = new Hoge();
+            h.Id = 20;
+            return h;
+        }
+        void string_func(string s)
+        {
+            s = s + "hoge";
+        }
+        private void button44_Click(object sender, EventArgs e)
+        {
+            var h = new Hoge();
+            hoge_func(h);
+
+            string s = "toto";
+            string_func(s);
+
+            hoge_func2(h);
+        }
+
+        private void button45_Click(object sender, EventArgs e)
+        {
+            var empty_int_list = new List<int>();
+            // list が空の場合、int の maxを取ろうとすると例外発生するが、
+            // int? を返すようにすれば max は null で取れる
+            var empty_max_val = empty_int_list.Max(x => (int?)x);
+            Console.WriteLine($"empty list max:({empty_max_val ?? 0})");
+
+
+            // 空でない場合もちゃんと取れる
+            var int_list = new List<int> { 1,2,3,4,};
+            var max_val = int_list.Max(x => (int?)x);
+            Console.WriteLine($"int list max:({max_val})");
+        }
+
+        private void button46_Click(object sender, EventArgs e)
+        {
+            var hoges = new List<Hoge>
+            {
+                new Hoge { Id = 1, Name ="one", },
+                new Hoge { Id = 3, Name ="three", },
+                new Hoge { Id = 2, Name ="two", },
+            };
+            var max_hoge = hoges.Max(x => x.Id);
+            // 2が取れるだけで、Hogeは参照できない。
+            Console.WriteLine(max_hoge);
+
+            // Hogeが欲しいときは、MaxとFirstの2段構え
+            var max_id = hoges.Max(x => x.Id);
+            var max_id_hoge = hoges.First(x => x.Id == max_id);
+            Console.WriteLine(max_id_hoge.String());
+        }
+
+        // null条件演算子、null合体演算子
+        private void button47_Click(object sender, EventArgs e)
+        {
+            var hoges = new List<Hoge>();
+            //hoges.Add(new Hoge { Id = 1, Name = "one", });
+            var empty_max_id = hoges.Max(x => (int?)x.Id);
+            Console.WriteLine(empty_max_id ?? -1); // null合体演算子 両オペランドは、同じ型でないと行けない
+
+            var hoges2 = new List<Hoge>
+            {
+                new Hoge { Id = 1, Name ="one", },
+                new Hoge { Id = 3, Name ="three", },
+                new Hoge { Id = 2, Name ="two", },
+            };
+            var found_hoge = hoges2.FirstOrDefault(x => x.Id == 5);
+            //var found_hoge = hoges2.FirstOrDefault(x => x.Id == 3);
+            Console.WriteLine($"found name: {found_hoge?.Name ?? "not found!"}");
+            // nullじゃないときだけ、メソッド呼び出し
+            Console.WriteLine($"found hoge: {found_hoge?.String() ?? "not found"}");
+
+        }
+
+        private void button48_Click(object sender, EventArgs e)
+        {
+            var ary = new List<int> { 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, };
+            int cnt = 3;
+            for(int i=0; i < ary.Count(); i += cnt)
+            {
+                int get_cnt = ary.Count() - i;
+                if (cnt < get_cnt) get_cnt = cnt;
+                var part = ary.GetRange(i, get_cnt);
+                Console.WriteLine($"<{string.Join(",",part)}>");
+            }
+        }
+
+        private void button49_Click(object sender, EventArgs e)
+        {
+            var s = "課長・参事~~~課長補佐~~~参事補佐~~~係長~~~主査~~~主事";
+            var a = s.Replace("~~~", "\t").Split('\t');
+        }
+
+        private void button50_Click(object sender, EventArgs e)
+        {
+            DateTime sample_date;
+            if (true)
+            {
+                set_date(out sample_date);
+            }
+            else
+            {
+            }
+            Console.WriteLine(sample_date.ToString());
+        }
+        static void set_date(out DateTime d)
+        {
+            d = new DateTime(2024, 10, 1);
+        }
+
+        // ElementAt
+        private void button51_Click(object sender, EventArgs e)
+        {
+            var ary = new List<int> { 1, 2, 3, 4, 5, };
+            var q = ary.AsEnumerable();
+            var has_5 = q.Contains(5);
+            var second_elm = q.ElementAt(2);
+            var rq = q.Reverse();
+            //var rq2 = ary.Reverse(); // Listのほうが優先されて？エラーになる
+            //ary.Reverse();
+            Console.WriteLine(rq.ToResult());
+        }
+
+        private void button52_Click(object sender, EventArgs e)
+        {
+            var ary = new List<int> { 1, 2, 3, 4, 5, 6,7,8,9,10};
+            // ILookup 
+            // 追加等の変更は不可
+            // キーによる探索はハッシュ
+            var l = ary.ToLookup(x => x % 3);
+            var cnt = l.Count(); // 3 全要素ではなく、キーの個数
+            var elms_0 = l[0]; // [3,6,9] IEnumerable が取れる
+            var elms_1 = l[1]; // [1,4,7,10]
+            var elms_2 = l[1]; // [1,4,7,10]
+        }
+
+        private void button53_Click(object sender, EventArgs e)
+        {
+            var s = "hoge" + Environment.NewLine + Environment.NewLine + "hage";
+            //var ss = s.Split(Environment.NewLine.ToCharArray(), StringSplitOptions.None);
+            // 文字列もセパレータとして使用可能。。。
+            var ss = s.Split(new[] { Environment.NewLine }, StringSplitOptions.None);
+            //var ss = s.Split(new[] { "\r\n" }, );
+            Console.WriteLine(ss.ToResult());
+        }
+
+        int Min(int a, int b)
+        {
+            return a < b ? a : b;
+        }
+        private void button54_Click(object sender, EventArgs e)
+        {
+            var s = "123456789";
+            int skip = 0;
+
+            //while (true)
+            //{
+            //    var a_s = new string(s.Skip(skip).Take(3).ToArray());
+            //    if (string.IsNullOrEmpty(a_s)) break;
+            //    skip += 3;
+            //}
+
+            while (skip < s.Length)
+            {
+                var a_s = s.Substring(skip, Min(3,s.Length-skip));
+                //if (string.IsNullOrEmpty(a_s)) break;
+                skip += 3;
+            }
+
+        }
+
+        private void button55_Click(object sender, EventArgs e)
+        {
+            var data = new List<Hoge> {
+                new Hoge{Id=1,Name="1"},
+                new Hoge{Id=2,Name="1"},
+                new Hoge{Id=1,Name="2"},
+                new Hoge{Id=2,Name="2"},
+            };
+            var distincted = data.Distinct(new HogeIdComp()).ToList();
+            Console.WriteLine(distincted.ToResult());
+        }
+
+        public static bool div3(int v)
+        {
+            return (v % 3) == 0;
+        }
+        public static bool div5(int v)
+        {
+            return (v % 5) == 0;
+        }
+        private void button56_Click(object sender, EventArgs e)
+        {
+            //ラムダ式ではなく実際の関数を使用できるか?
+            var ary = new int[] { 0, 1, 2, 3, 4, 5, };
+            //var only3 = ary.Where(x => (x%3)==0).ToList();
+            Func<int, bool> f = div3;
+            var f_ary = new Func<int, bool>[] { div3, div5, };
+            //var only3 = ary.Where(div3).ToList();
+            //var only3 = ary.Where(f).ToList();
+            var only3 = ary.Where(f_ary[1]).ToList();
+            Console.WriteLine(only3.ToResult());
+        }
+
+        // IEnumerable IEnumerator
+        private void button57_Click(object sender, EventArgs e)
+        {
+            var ary = new int [] { 1,2,3,4,5,};
+            IEnumerable<int> ary_enumerble = ary;
+            IEnumerator<int> ary_enumerator = ary_enumerble.GetEnumerator();
+            ary_enumerator.MoveNext();
+            Console.WriteLine(ary_enumerator.Current);
+            ary_enumerator.MoveNext();
+            Console.WriteLine(ary_enumerator.Current);
+            ary_enumerator.MoveNext();
+            Console.WriteLine(ary_enumerator.Current);
+
+            ary_enumerator = ary_enumerble.GetEnumerator();
+            while (ary_enumerator.MoveNext()) Console.WriteLine(ary_enumerator.Current);
+
+            for(ary_enumerator = ary_enumerble.GetEnumerator(); ary_enumerator.MoveNext(); /*nothing*/) Console.WriteLine(ary_enumerator.Current);
+        }
+
+        // object ==
+        private void button58_Click(object sender, EventArgs e)
+        {
+            var hoge1 = new Hoge2 { Name = "hoge", No = 123, };
+            var hoge2 = hoge1;
+            var hoge3 = new Hoge2 { Name = "hoge", No = 123, };
+            Console.WriteLine($"equal(1): {hoge2 == hoge1}");
+            Console.WriteLine($"equal(2): {hoge3 == hoge1}");
+
+            hoge1 = null;
+            hoge2 = null;
+            Console.WriteLine($"equal(3): {hoge2 == hoge1}");
+
+            var s1 = "hoge";
+            var s2 = s1;
+            var s3 = "hoge";
+            Console.WriteLine($"equal(4): {s1== s2}");
+            //Console.WriteLine($"equal(5): {string.operator==(s1,s3)}");
         }
 
     }
@@ -787,7 +1136,21 @@ namespace LinqBen
             return hashCode;
         }
     }
+    // IDだけ見るEqual判定
+    public class HogeIdComp : IEqualityComparer<Hoge>
+    {
+        public bool Equals(Hoge x, Hoge y)
+        {
+            return x.Id == y.Id;
+            //throw new NotImplementedException();
+        }
 
+        public int GetHashCode(Hoge obj)
+        {
+            return obj.Id.GetHashCode();
+            //throw new NotImplementedException();
+        }
+    };
     public class Hoge2
     {
         public int No { get; set; }
@@ -795,6 +1158,12 @@ namespace LinqBen
         override public string ToString()
         {
             return $"{{ No={No}, Name={Name} }}";
+        }
+        public int Rank { get; set; }
+        public int RankAbout() => Rank / 1000 * 1000;
+        public static Hoge2 Comparare(Hoge2 a, Hoge2 b)
+        {
+            return a.No > b.No ? a : b;
         }
     }
     public class PetOwners
